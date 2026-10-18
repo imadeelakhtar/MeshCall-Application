@@ -100,7 +100,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:text="Shared Location"
-                                android:textColor="#FFFFFF"
+                                android:textColor="?android:textColorPrimary"
                                 android:textSize="15sp"
                                 android:textStyle="bold" />
 
@@ -109,7 +109,7 @@
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginTop="2dp"
-                                android:textColor="#A0A0A0"
+                                android:textColor="?android:textColorSecondary"
                                 android:textSize="12sp"
                                 tools:text="37.7749, -122.4194" />
                         </LinearLayout>
@@ -140,14 +140,14 @@
                                 android:layout_width="16dp"
                                 android:layout_height="16dp"
                                 android:src="@drawable/ic_location_pin"
-                                app:tint="#FFFFFF" />
+                                app:tint="?android:textColorPrimary" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:text="Open in Maps"
-                                android:textColor="#FFFFFF"
+                                android:textColor="?android:textColorPrimary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
                         </LinearLayout>
@@ -169,14 +169,14 @@
                                 android:layout_width="16dp"
                                 android:layout_height="16dp"
                                 android:src="@drawable/ic_document_premium"
-                                app:tint="#FFFFFF" />
+                                app:tint="?android:textColorPrimary" />
 
                             <TextView
                                 android:layout_width="wrap_content"
                                 android:layout_height="wrap_content"
                                 android:layout_marginStart="6dp"
                                 android:text="Copy Coords"
-                                android:textColor="#FFFFFF"
+                                android:textColor="?android:textColorPrimary"
                                 android:textSize="12sp"
                                 android:textStyle="bold" />
                         </LinearLayout>

@@ -1,3 +1,28 @@
 <resources>
     <string name="app_name">MeshCall</string>
+    <string name="developer_credit">by Adeel Akhtar</string>
+    
+    <!-- Navigation & Titles -->
+    <string name="title_home">Home</string>
+    <string name="title_chats">Chats</string>
+    <string name="title_radar">Radar</string>
+    <string name="title_calls">Calls</string>
+    <string name="title_settings">Settings</string>
+    
+    <!-- Actions -->
+    <string name="action_connect">Connect</string>
+    <string name="action_disconnect">Disconnect</string>
+    <string name="action_accept">Accept</string>
+    <string name="action_decline">Decline</string>
+    <string name="action_send">Send</string>
+    <string name="action_cancel">Cancel</string>
+    <string name="action_save">Save</string>
+    <string name="action_delete">Delete</string>
+    <string name="action_discover_peers">Discover Peers</string>
+    
+    <!-- Status -->
+    <string name="status_connected">Connected</string>
+    <string name="status_disconnected">Disconnected</string>
+    <string name="status_nearby">Nearby</string>
+    <string name="status_secure_connection">Secure Connection</string>
 </resources>

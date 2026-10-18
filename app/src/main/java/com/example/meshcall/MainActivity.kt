@@ -27,6 +27,8 @@ import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 import androidx.recyclerview.widget.LinearLayoutManager
 import androidx.recyclerview.widget.RecyclerView
+import com.google.android.material.bottomnavigation.BottomNavigationView
+import android.content.res.ColorStateList
 
 class MainActivity : AppCompatActivity(), MeshServiceObserver {
     private val TAG = "MainActivity"
@@ -45,9 +47,17 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
     private lateinit var appBarLayout: View
     
     private lateinit var textHomeDisplayName: TextView
+    private var textWelcomeHome: TextView? = null
+    private lateinit var profileManager: ProfileManager
     private lateinit var cardHomeChat: View
     private lateinit var cardHomeCall: View
     private lateinit var buttonCallFindPeople: Button
+    private lateinit var bottomNavigation: BottomNavigationView
+    private var isNavUpdating = false
+    private var textDashboardNetworkStatus: TextView? = null
+    private var viewNetworkStatusDot: View? = null
+    private var textHomeStatusHeader: TextView? = null
+    private var textHomeStatusDescription: TextView? = null
     
     private lateinit var recyclerViewConversations: RecyclerView
     private lateinit var textEmptyConversations: TextView
@@ -163,6 +173,9 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                     callActiveContainer.visibility == View.VISIBLE -> {
                         Log.i("MeshCall_Nav", "CALL_UI_HIDE")
                         callActiveContainer.visibility = View.GONE
+                        if (::bottomNavigation.isInitialized && chatContainer.visibility != View.VISIBLE) {
+                            bottomNavigation.visibility = View.VISIBLE
+                        }
                     }
                     chatContainer.visibility == View.VISIBLE -> {
                         Log.i("MeshCall_Nav", "CHAT_CLOSE")
@@ -187,7 +200,7 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
             }
         })
         
-        val profileManager = ProfileManager(this)
+        profileManager = ProfileManager(this)
         if (profileManager.getProfile() == null) {
             startActivity(Intent(this, SetupActivity::class.java))
             finish()
@@ -228,6 +241,10 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
     
     override fun onResume() {
         super.onResume()
+        if (::textHomeDisplayName.isInitialized && ::profileManager.isInitialized) {
+            updateHomeGreeting()
+        }
+        updateDashboardStatus()
         meshService?.updateActiveConversationId(activeConversationId)
         
         // Clear message notifications for active chat if open
@@ -313,12 +330,19 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
             layoutEmptyCallHistory = findViewById(R.id.layoutEmptyCallHistory)
         }
         textHomeDisplayName = findViewById(R.id.textHomeDisplayName)
+        textWelcomeHome = findViewById(R.id.textWelcomeHome)
         cardHomeChat = findViewById(R.id.cardHomeChat)
         cardHomeCall = findViewById(R.id.cardHomeCall)
         buttonCallFindPeople = findViewById(R.id.buttonCallFindPeople)
         
-        val profileManager = ProfileManager(this)
-        textHomeDisplayName.text = profileManager.getProfile()?.displayName ?: "User"
+        bottomNavigation = findViewById(R.id.bottomNavigation)
+        textDashboardNetworkStatus = findViewById(R.id.textDashboardNetworkStatus)
+        viewNetworkStatusDot = findViewById(R.id.viewNetworkStatusDot)
+        textHomeStatusHeader = findViewById(R.id.textHomeStatusHeader)
+        textHomeStatusDescription = findViewById(R.id.textHomeStatusDescription)
+        
+        updateHomeGreeting()
+        updateDashboardStatus()
         
         discoveryContainer = findViewById(R.id.discoveryContainer)
         connectionRequestContainer = findViewById(R.id.includeConnectionRequest)
@@ -410,6 +434,16 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
         buttonEndCall = findViewById(R.id.buttonEndCall)
     }
 
+    private fun updateHomeGreeting() {
+        val profile = profileManager.getProfile()
+        val rawName = profile?.displayName?.takeIf { it.isNotBlank() }
+            ?: profile?.username?.takeIf { it.isNotBlank() }
+            ?: "User"
+        val greeting = "Hello ${rawName.trim()}"
+        textHomeDisplayName.text = greeting
+        textWelcomeHome?.text = greeting
+    }
+
     private fun setupAdapters() {
         conversationAdapter = ConversationAdapter { conversation ->
             Log.i("MeshCall_Diag", "Clicked conversation: ${conversation.peerUserId}")
@@ -460,6 +494,30 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
             updateUIState(AppConnectionState.MESH_CALL_PLACEHOLDER)
         }
 
+        bottomNavigation.setOnItemSelectedListener { item ->
+            if (isNavUpdating) return@setOnItemSelectedListener true
+            when (item.itemId) {
+                R.id.nav_home -> {
+                    updateUIState(AppConnectionState.HOME_DASHBOARD)
+                    true
+                }
+                R.id.nav_chats -> {
+                    updateUIState(AppConnectionState.CONVERSATIONS_LIST)
+                    loadConversations()
+                    true
+                }
+                R.id.nav_radar -> {
+                    updateUIState(AppConnectionState.DISCOVERY)
+                    true
+                }
+                R.id.nav_calls -> {
+                    updateUIState(AppConnectionState.MESH_CALL_PLACEHOLDER)
+                    true
+                }
+                else -> false
+            }
+        }
+
         fabNewChat.setOnClickListener {
             startDiscoveryFlow()
         }
@@ -498,17 +556,23 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
         }
 
         buttonSend.setOnClickListener {
-            val state = meshService?.getAppConnectionState(meshService?.peerManager?.getConnectionByUserId(activeConversationId ?: "")?.peerId)
-            if (state == AppConnectionState.SESSION_ACTIVE && activeConversationId != null) {
-                val messageText = editTextMessage.text.toString().trim()
-                if (messageText.isNotEmpty()) {
-                    android.util.Log.i("MeshCall_CrashTrace", "TEXT_SEND_CLICK")
-                    try {
-                        meshService?.sendMessage(messageText, activeConversationId)
-                        editTextMessage.text.clear()
-                    } catch (e: Exception) {
-                        android.util.Log.e("MeshCall_CrashTrace", "FATAL EXCEPTION in MainActivity: ${e.message}\n${android.util.Log.getStackTraceString(e)}")
-                        throw e
+            val convId = activeConversationId
+            if (convId != null) {
+                val state = meshService?.getAppConnectionState(meshService?.peerManager?.getConnectionByUserId(convId)?.peerId)
+                val isDirectlyConnected = state == AppConnectionState.SESSION_ACTIVE
+                val hasMeshRoute = meshService?.routeManager?.hasRouteTo(convId) == true
+
+                if (isDirectlyConnected || hasMeshRoute) {
+                    val messageText = editTextMessage.text.toString().trim()
+                    if (messageText.isNotEmpty()) {
+                        android.util.Log.i("MeshCall_CrashTrace", "TEXT_SEND_CLICK")
+                        try {
+                            meshService?.sendMessage(messageText, convId)
+                            editTextMessage.text.clear()
+                        } catch (e: Exception) {
+                            android.util.Log.e("MeshCall_CrashTrace", "FATAL EXCEPTION in MainActivity: ${e.message}\n${android.util.Log.getStackTraceString(e)}")
+                            throw e
+                        }
                     }
                 }
             }
@@ -674,10 +738,39 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
         connectionRequestContainer.visibility = View.GONE
         connectedMenuContainer.visibility = View.GONE
         chatContainer.visibility = View.VISIBLE
+        if (::bottomNavigation.isInitialized) {
+            bottomNavigation.visibility = View.GONE
+        }
         Log.i("MeshCall_CrashTrace", "CHAT_SCREEN_SHOWN")
     }
 
     // onBackPressed() logic has been moved to OnBackPressedDispatcher in onCreate()
+
+    private fun selectBottomNavItem(itemId: Int) {
+        if (!::bottomNavigation.isInitialized) return
+        if (bottomNavigation.selectedItemId != itemId) {
+            isNavUpdating = true
+            bottomNavigation.selectedItemId = itemId
+            isNavUpdating = false
+        }
+    }
+
+    private fun updateDashboardStatus() {
+        val isConnected = meshService?.isConnected == true
+        val deviceName = meshService?.currentDevice?.deviceName
+        if (isConnected) {
+            val statusText = if (!deviceName.isNullOrBlank()) "Connected to $deviceName" else "Connected to peer"
+            textDashboardNetworkStatus?.text = "Mesh Connected"
+            viewNetworkStatusDot?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.meshcall_success))
+            textHomeStatusHeader?.text = "Connected"
+            textHomeStatusDescription?.text = statusText
+        } else {
+            textDashboardNetworkStatus?.text = "Offline Mesh Ready"
+            viewNetworkStatusDot?.backgroundTintList = ColorStateList.valueOf(ContextCompat.getColor(this, R.color.meshcall_primary))
+            textHomeStatusHeader?.text = "Network Status"
+            textHomeStatusDescription?.text = "Standby • Ready for peer connection"
+        }
+    }
 
     private fun updateUIState(state: AppConnectionState) {
         conversationsContainer.visibility = View.GONE
@@ -688,19 +781,26 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
         homeDashboardContainer.visibility = View.GONE
         meshCallPlaceholderContainer.visibility = View.GONE
         appBarLayout.visibility = View.VISIBLE
+        if (::bottomNavigation.isInitialized) {
+            bottomNavigation.visibility = View.VISIBLE
+        }
         
         when (state) {
             AppConnectionState.HOME_DASHBOARD -> {
                 android.util.Log.i("MeshCall_UI", "HOME_SCREEN_SHOWN")
                 homeDashboardContainer.visibility = View.VISIBLE
                 toolbar.subtitle = ""
+                selectBottomNavItem(R.id.nav_home)
+                updateDashboardStatus()
             }
             AppConnectionState.CONVERSATIONS_LIST -> {
                 conversationsContainer.visibility = View.VISIBLE
                 toolbar.subtitle = "Chats"
+                selectBottomNavItem(R.id.nav_chats)
             }
             AppConnectionState.MESH_CALL_PLACEHOLDER -> {
                 meshCallPlaceholderContainer.visibility = View.VISIBLE
+                selectBottomNavItem(R.id.nav_calls)
                 
                 if (::callHistoryAdapter.isInitialized) {
                     val dbHelper = meshService?.dbHelper
@@ -741,17 +841,21 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                 android.util.Log.i("MeshCall_UI", "DISCOVERY_STATE_ENTER")
                 discoveryContainer.visibility = View.VISIBLE
                 toolbar.subtitle = "Nearby People"
+                selectBottomNavItem(R.id.nav_radar)
             }
             AppConnectionState.DISCONNECTED -> {
                 if (activeConversationId != null) {
                     chatContainer.visibility = View.VISIBLE
                     appBarLayout.visibility = View.GONE
+                    if (::bottomNavigation.isInitialized) bottomNavigation.visibility = View.GONE
                     val isConnected = activeConversationId?.let { meshService?.peerManager?.getConnectionByUserId(it) != null } == true
                     findViewById<TextView>(R.id.textChatStatus).text = if (isConnected) "Connected" else "Disconnected"
                 } else {
                     android.util.Log.i("MeshCall_UI", "HOME_SCREEN_SHOWN")
                     homeDashboardContainer.visibility = View.VISIBLE
                     toolbar.subtitle = ""
+                    selectBottomNavItem(R.id.nav_home)
+                    updateDashboardStatus()
                 }
             }
             AppConnectionState.TRANSPORT_CONNECTED -> {
@@ -760,20 +864,26 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                 if (activeConversationId != null) {
                     chatContainer.visibility = View.VISIBLE
                     appBarLayout.visibility = View.GONE
+                    if (::bottomNavigation.isInitialized) bottomNavigation.visibility = View.GONE
                     val isConnected = activeConversationId?.let { meshService?.peerManager?.getConnectionByUserId(it) != null } == true
                     findViewById<TextView>(R.id.textChatStatus).text = if (isConnected) "Connected" else "Disconnected"
                 } else {
                     homeDashboardContainer.visibility = View.VISIBLE
+                    selectBottomNavItem(R.id.nav_home)
+                    updateDashboardStatus()
                 }
             }
             AppConnectionState.REQUEST_SENT -> {
                 discoveryContainer.visibility = View.VISIBLE
                 textDiscoveryStatus.text = "Waiting for ${meshService?.currentDevice?.deviceName} to accept..."
+                selectBottomNavItem(R.id.nav_radar)
             }
             AppConnectionState.REQUEST_RECEIVED -> {
                 connectionRequestContainer.visibility = View.VISIBLE
+                if (::bottomNavigation.isInitialized) bottomNavigation.visibility = View.GONE
             }
             AppConnectionState.SESSION_ACTIVE -> {
+                if (::bottomNavigation.isInitialized) bottomNavigation.visibility = View.GONE
                 android.util.Log.i("MeshCall_Diag", "M2D9_UI_STATE: SESSION_ACTIVE. activeConversationId=$activeConversationId")
                 val connection = activeConversationId?.let { meshService?.peerManager?.getConnectionByUserId(it) } ?: activeConversationId?.let { meshService?.peerManager?.getConnection(it) }
                 val profile = connection?.profile
@@ -787,6 +897,8 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                 } else {
                     android.util.Log.i("MeshCall_Diag", "M2D9_UI_STATE: profile is null, showing conversations list")
                     conversationsContainer.visibility = View.VISIBLE
+                    if (::bottomNavigation.isInitialized) bottomNavigation.visibility = View.VISIBLE
+                    selectBottomNavItem(R.id.nav_chats)
                 }
             }
         }
@@ -899,9 +1011,13 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
     override fun onConnectionStateChanged(isConnected: Boolean, device: WifiP2pDevice?, role: String?) {
         if (isConnected) {
             // Wait for AppConnectionState.TRANSPORT_CONNECTED to drive the UI/send request.
+            runOnUiThread {
+                updateDashboardStatus()
+            }
         } else {
             runOnUiThread {
                 loadConversations()
+                updateDashboardStatus()
                 if (activeConversationId != null) {
                     toolbar.subtitle = "Disconnected"
                 } else {
@@ -982,8 +1098,14 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                     callIncomingContainer.visibility = View.GONE
                     callActiveContainer.visibility = View.GONE
                     stopCallDurationTimer()
+                    if (::bottomNavigation.isInitialized && chatContainer.visibility != View.VISIBLE) {
+                        bottomNavigation.visibility = View.VISIBLE
+                    }
                 }
                 CallState.OUTGOING_CALL -> {
+                    if (::bottomNavigation.isInitialized) {
+                        bottomNavigation.visibility = View.GONE
+                    }
                     callIncomingContainer.visibility = View.GONE
                     callActiveContainer.visibility = View.VISIBLE
                     textActiveCallName.text = remoteProfile?.displayName?.ifEmpty { remoteProfile.username } ?: "Unknown"
@@ -995,12 +1117,18 @@ class MainActivity : AppCompatActivity(), MeshServiceObserver {
                     stopCallDurationTimer()
                 }
                 CallState.INCOMING_CALL -> {
+                    if (::bottomNavigation.isInitialized) {
+                        bottomNavigation.visibility = View.GONE
+                    }
                     callActiveContainer.visibility = View.GONE
                     callIncomingContainer.visibility = View.VISIBLE
                     textIncomingCallName.text = remoteProfile?.displayName?.ifEmpty { remoteProfile.username } ?: "Unknown"
                     textIncomingCallUsername.text = "@${remoteProfile?.username ?: "unknown"}"
                 }
                 CallState.CONNECTED -> {
+                    if (::bottomNavigation.isInitialized) {
+                        bottomNavigation.visibility = View.GONE
+                    }
                     callIncomingContainer.visibility = View.GONE
                     callActiveContainer.visibility = View.VISIBLE
                     textActiveCallName.text = remoteProfile?.displayName?.ifEmpty { remoteProfile.username } ?: "Unknown"

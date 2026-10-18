@@ -159,10 +159,22 @@
                 android:textSize="18sp"
                 android:textStyle="bold"
                 app:backgroundTint="@null"
-                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintBottom_toTopOf="@id/textDeveloperCreditSetup"
                 app:layout_constraintTop_toBottomOf="@id/editUsername"
                 app:layout_constraintVertical_bias="1.0" />
 
+            <TextView
+                android:id="@+id/textDeveloperCreditSetup"
+                android:layout_width="wrap_content"
+                android:layout_height="wrap_content"
+                android:layout_marginBottom="8dp"
+                android:text="by Adeel Akhtar"
+                android:textColor="?android:textColorSecondary"
+                android:textSize="12sp"
+                android:letterSpacing="0.04"
+                app:layout_constraintBottom_toBottomOf="parent"
+                app:layout_constraintStart_toStartOf="parent"
+                app:layout_constraintEnd_toEndOf="parent" />
         </androidx.constraintlayout.widget.ConstraintLayout>
     </ScrollView>
 </androidx.constraintlayout.widget.ConstraintLayout>

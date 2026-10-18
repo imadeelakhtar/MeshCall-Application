@@ -1,9 +1,63 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="meshcall_bg">#0B0E14</color>
-    <color name="meshcall_surface">#131620</color>
+    <!-- Brand Primary (Aether Indigo - Dark Mode) -->
+    <color name="meshcall_primary">#6366F1</color>
+    <color name="meshcall_primary_variant">#4F46E5</color>
+    <color name="meshcall_on_primary">#FFFFFF</color>
+
+    <!-- Brand Secondary (Aether Purple Accent - Dark Mode) -->
+    <color name="meshcall_secondary">#A855F7</color>
+    <color name="meshcall_secondary_variant">#9333EA</color>
+    <color name="meshcall_on_secondary">#FFFFFF</color>
+
+    <!-- Background & Surface (Dark Mode) -->
+    <color name="meshcall_bg">#090D16</color>
+    <color name="meshcall_surface">#131927</color>
+    <color name="meshcall_surface_variant">#1E2538</color>
+    <color name="meshcall_card_stroke">#1E293B</color>
+
+    <!-- Typography (Dark Mode) -->
     <color name="meshcall_text_primary">#F8FAFC</color>
     <color name="meshcall_text_secondary">#94A3B8</color>
+    <color name="meshcall_text_tertiary">#64748B</color>
+
+    <!-- Translucent Glass Elements (Dark Mode) -->
     <color name="meshcall_glass_surface">#1AFFFFFF</color>
     <color name="meshcall_glass_border">#1AFFFFFF</color>
+    <color name="meshcall_glass_accent_start">#4D6366F1</color>
+    <color name="meshcall_glass_accent_end">#4DA855F7</color>
+
+    <!-- Inputs & Controls (Dark Mode) -->
+    <color name="meshcall_input_bg">#131927</color>
+    <color name="meshcall_input_stroke">#1E293B</color>
+
+    <!-- Ambient Gradient Backdrops (Dark Mode) -->
+    <color name="meshcall_chat_ambient_start">#05050A</color>
+    <color name="meshcall_chat_ambient_center">#090D16</color>
+    <color name="meshcall_chat_ambient_end">#0F1322</color>
+
+    <!-- Functional & Status Colors -->
+    <color name="meshcall_success">#10B981</color>
+    <color name="meshcall_warning">#F59E0B</color>
+    <color name="meshcall_error">#EF4444</color>
+
+    <!-- Calling Action Colors -->
+    <color name="meshcall_call_accept">#10B981</color>
+    <color name="meshcall_call_decline">#EF4444</color>
+    <color name="meshcall_call_end">#EF4444</color>
+
+    <!-- Dark Theme Backward-Compatibility Equivalents -->
+    <color name="meshcall_bg_dark">#090D16</color>
+    <color name="meshcall_surface_dark">#131927</color>
+    <color name="meshcall_text_primary_dark">#F8FAFC</color>
+    <color name="meshcall_text_secondary_dark">#94A3B8</color>
+    <color name="meshcall_glass_surface_dark">#1AFFFFFF</color>
+    <color name="meshcall_glass_border_dark">#1AFFFFFF</color>
+
+    <!-- Toolbar Brand Header Colors -->
+    <color name="meshcall_toolbar_bg_start">#111625</color>
+    <color name="meshcall_toolbar_bg_end">#090D16</color>
+    <color name="meshcall_toolbar_stroke">#336366F1</color>
+    <color name="meshcall_toolbar_title">#818CF8</color>
+    <color name="meshcall_toolbar_subtitle">#94A3B8</color>
 </resources>
